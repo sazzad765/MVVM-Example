@@ -45,6 +45,8 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteHolder> {
     }
 
     public Note getNoteAt(int position) {
+        notifyItemRemoved(position);
+        notes.remove(position);
         return notes.get(position);
     }
 

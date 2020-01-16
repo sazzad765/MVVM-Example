@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -19,32 +20,26 @@ import android.widget.Toast;
 
 import com.example.mvvmexample.adapters.NoteAdapter;
 import com.example.mvvmexample.models.Note;
-import com.example.mvvmexample.models.UserList;
-import com.example.mvvmexample.remote.APIClient;
 import com.example.mvvmexample.remote.APIInterface;
 import com.example.mvvmexample.viewmodels.NoteViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.List;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-
 public class MainActivity extends AppCompatActivity {
     public static final int ADD_NOTE_REQUEST = 1;
     public static final int EDIT_NOTE_REQUEST = 2;
 
     private NoteViewModel noteViewModel;
-
-    //temp
-    private MutableLiveData<Note> allNotes = new MutableLiveData<>();
-    APIInterface apiInterface;
+    NoteAdapter adapter;
+    private SwipeRefreshLayout swipeRefresh;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        swipeRefresh = findViewById(R.id.swipeRefresh);
 
         FloatingActionButton buttonAddNote = findViewById(R.id.button_add_note);
         buttonAddNote.setOnClickListener(new View.OnClickListener() {
@@ -59,55 +54,18 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setHasFixedSize(true);
 
-        final NoteAdapter adapter = new NoteAdapter();
+        adapter = new NoteAdapter();
         recyclerView.setAdapter(adapter);
 
-        //temp
-//        apiInterface = APIClient.getRetrofitInstance().create(APIInterface.class);
-//        Call<List<Note>> call2 = apiInterface.doGetListResources();
-//        call2.enqueue(new Callback<List<Note>>() {
-//            @Override
-//            public void onResponse(Call<List<Note>> call, Response<List<Note>> response) {
-////                Note note = (Note) response.body();
-//            }
-//            @Override
-//            public void onFailure(Call<List<Note>> call, Throwable t) {
-//                call.cancel();
-//            }
-//        });
 
-//        Call<UserList> call3 = apiInterface.doGetUserList();
-//        call3.enqueue(new Callback<UserList>() {
-//            @Override
-//            public void onResponse(Call<UserList> call, Response<UserList> response) {
-//
-//                UserList userList = response.body();
-//                Integer text = userList.page;
-//                Integer total = userList.total;
-//                Integer totalPages = userList.totalPages;
-//                List<UserList.Datum> datumList = userList.data;
-//                Toast.makeText(getApplicationContext(), text + " page\n" + total + " total\n" + totalPages + " totalPages\n", Toast.LENGTH_SHORT).show();
-//
-//                for (UserList.Datum datum : datumList) {
-//                    Toast.makeText(getApplicationContext(), "id : " + datum.id + " name: " + datum.first_name + " " + datum.last_name + " avatar: " + datum.avatar, Toast.LENGTH_SHORT).show();
-//                }
-//
-//
-//            }
-//
-//            @Override
-//            public void onFailure(Call<UserList> call, Throwable t) {
-//                call.cancel();
-//            }
-//        });
-
-        noteViewModel = ViewModelProviders.of(this).get(NoteViewModel.class);
-        noteViewModel.getAllNotes().observe(this, new Observer<List<Note>>() {
+        getNote();
+        swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
-            public void onChanged(List<Note> notes) {
-                adapter.setNotes(notes);
+            public void onRefresh() {
+                getNote();
             }
         });
+
 
         new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0,
                 ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
@@ -118,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
-//                noteViewModel.delete(adapter.getNoteAt(viewHolder.getAdapterPosition()));
+                noteViewModel.delete(adapter.getNoteAt(viewHolder.getAdapterPosition()));
                 Toast.makeText(MainActivity.this, "Note deleted", Toast.LENGTH_SHORT).show();
             }
         }).attachToRecyclerView(recyclerView);
@@ -127,14 +85,26 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(Note note) {
                 Intent intent = new Intent(MainActivity.this, AddEditNoteActivity.class);
-//                intent.putExtra(AddEditNoteActivity.EXTRA_ID, note.getId());
-//                intent.putExtra(AddEditNoteActivity.EXTRA_TITLE, note.getTitle());
-//                intent.putExtra(AddEditNoteActivity.EXTRA_DESCRIPTION, note.getDescription());
-//                intent.putExtra(AddEditNoteActivity.EXTRA_PRIORITY, note.getPriority());
+                intent.putExtra(AddEditNoteActivity.EXTRA_ID, note.getId());
+                intent.putExtra(AddEditNoteActivity.EXTRA_TITLE, note.getTitle());
+                intent.putExtra(AddEditNoteActivity.EXTRA_DESCRIPTION, note.getDescription());
+                intent.putExtra(AddEditNoteActivity.EXTRA_PRIORITY, note.getPriority());
                 startActivityForResult(intent, EDIT_NOTE_REQUEST);
             }
         });
     }
+    private void getNote(){
+        noteViewModel = ViewModelProviders.of(this).get(NoteViewModel.class);
+        noteViewModel.getAllNotes().observe(this, new Observer<List<Note>>() {
+            @Override
+            public void onChanged(List<Note> notes) {
+                adapter.setNotes(notes);
+                adapter.notifyDataSetChanged();
+                swipeRefresh.setRefreshing(false);
+            }
+        });
+    }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -145,9 +115,9 @@ public class MainActivity extends AppCompatActivity {
             String description = data.getStringExtra(AddEditNoteActivity.EXTRA_DESCRIPTION);
             int priority = data.getIntExtra(AddEditNoteActivity.EXTRA_PRIORITY, 1);
 
-
-//            Note note = new Note(id, title, description, priority);
-//            noteViewModel.insert(note);
+            Note note = new Note(title, description, priority);
+            noteViewModel.insert(note);
+            getNote();
 
             Toast.makeText(this, "Note saved", Toast.LENGTH_SHORT).show();
         } else if (requestCode == EDIT_NOTE_REQUEST && resultCode == RESULT_OK) {
@@ -162,8 +132,8 @@ public class MainActivity extends AppCompatActivity {
             String description = data.getStringExtra(AddEditNoteActivity.EXTRA_DESCRIPTION);
             int priority = data.getIntExtra(AddEditNoteActivity.EXTRA_PRIORITY, 1);
 
-//            Note note = new Note(title, description, priority);
-//            note.setId(id);
+            Note note = new Note(title, description, priority);
+            note.setId(id);
 //            noteViewModel.update(note);
 
             Toast.makeText(this, "Note updated", Toast.LENGTH_SHORT).show();

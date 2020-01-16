@@ -1,9 +1,4 @@
 package com.example.mvvmexample.viewmodels;
-
-import android.app.Application;
-
-import androidx.annotation.NonNull;
-import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModel;
 
@@ -18,26 +13,28 @@ public class NoteViewModel extends ViewModel {
     public NoteViewModel() {
         super();
         repository = NoteRepository.getInstance();
-        allNotes = repository.getAllNotes();
+
     }
 
-//    public void insert(Note note) {
-//        repository.insert(note);
-//    }
+    public void insert(Note note) {
+        repository.insert(note);
+    }
 //
 //    public void update(Note note) {
 //        repository.update(note);
 //    }
 //
-//    public void delete(Note note) {
-//        repository.delete(note);
-//    }
+    public void delete(Note note) {
+        repository.delete(note);
+    }
 //
 //    public void deleteAllNotes() {
 //        repository.deleteAllNotes();
 //    }
 
     public LiveData<List<Note>> getAllNotes() {
+        allNotes = repository.getAllNotes();
+
         return allNotes;
     }
 }

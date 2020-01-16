@@ -1,6 +1,9 @@
 apply plugin: 'com.android.application'
 
 android {
+    dataBinding {
+        enabled=true
+    }
     compileSdkVersion 28
     defaultConfig {
         applicationId "com.example.mvvmexample"
@@ -34,6 +37,7 @@ dependencies {
     // For control over item selection of both touch and mouse driven selection
     implementation "androidx.recyclerview:recyclerview-selection:1.1.0-beta01"
     implementation 'com.google.android.material:material:1.2.0-alpha03'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.0.0'
 
     implementation "androidx.lifecycle:lifecycle-extensions:$lifecycle_version"
     annotationProcessor "androidx.lifecycle:lifecycle-compiler:$lifecycle_version"
